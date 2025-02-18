@@ -1,5 +1,5 @@
 use clap::Parser;
-use image::{GenericImageView, ImageBuffer};
+use image::GenericImageView;
 
 #[derive(Parser)]
 struct Cli {
