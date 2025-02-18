@@ -2,6 +2,7 @@
 name = "img2ascii"
 version = "0.1.0"
 edition = "2021"
+authors = [ "Max Mynter" ]
 
 [dependencies]
 clap = {version="4.0", features=["derive"]}
