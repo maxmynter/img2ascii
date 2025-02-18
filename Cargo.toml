@@ -7,3 +7,4 @@ authors = [ "Max Mynter" ]
 [dependencies]
 clap = {version="4.0", features=["derive"]}
 image = {version="0.25"}
+colored = {version="3.0.0"}

@@ -1,5 +1,6 @@
 use clap::{Parser, ValueEnum};
-use image::GenericImageView;
+use colored::Colorize;
+use image::{GenericImageView, Rgb, Rgba};
 
 #[derive(Parser)]
 struct Cli {
@@ -30,6 +31,32 @@ impl std::fmt::Display for ColorScheme {
     }
 }
 
+fn pixel_to_brightness(pixel: Rgba<u8>) -> u8 {
+    // Rec standard for luma grayscale conversion
+    (pixel[0] as f32 * 0.3 + pixel[1] as f32 * 0.59 + pixel[2] as f32 * 0.11) as u8
+}
+
+fn pixel_to_ascii(pixel: Rgba<u8>) -> char {
+    let brightness = pixel_to_brightness(pixel);
+    let char_idx = (brightness as f32 / 255.0 * (ASCII_CHARS.len() - 1) as f32) as usize;
+    let ascii_char = ASCII_CHARS.chars().nth(char_idx).unwrap();
+
+    ascii_char
+}
+
+fn pixel_to_color(pixel: Rgba<u8>, scheme: &ColorScheme) -> Rgb<u8> {
+    match scheme {
+        ColorScheme::Original => Rgb([pixel[0], pixel[1], pixel[2]]),
+        ColorScheme::BlackAndWhite => Rgb([0, 0, 0]),
+    }
+}
+
+fn colorize_ascii(c: char, color: Rgb<u8>) -> String {
+    c.to_string()
+        .truecolor(color[0], color[1], color[2])
+        .to_string()
+}
+
 // From darkest to lightest
 const ASCII_CHARS: &str = "@%#*+=-:. ";
 
@@ -46,13 +73,12 @@ fn main() {
         for x in 0..width {
             let pixel = img.get_pixel(x, y);
 
-            // Rec standard for luma grayscale conversion
-            let brightness =
-                (pixel[0] as f32 * 0.3 + pixel[1] as f32 * 0.59 + pixel[2] as f32 * 0.11) as u8;
-            let char_idx = (brightness as f32 / 255.0 * (ASCII_CHARS.len() - 1) as f32) as usize;
+            let ascii_char = pixel_to_ascii(pixel);
+            let color = pixel_to_color(pixel, &args.color_scheme);
 
-            let ascii_char = ASCII_CHARS.chars().nth(char_idx).unwrap();
-            print!("{}", ascii_char);
+            let color_ascii = colorize_ascii(ascii_char, color);
+
+            print!("{}", color_ascii);
         }
         println!();
     }
