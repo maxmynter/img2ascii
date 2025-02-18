@@ -4,7 +4,12 @@ use image::GenericImageView;
 #[derive(Parser)]
 struct Cli {
     path: std::path::PathBuf,
-    // Width and height can be cli args too
+
+    #[arg(short = 'x', long, default_value_t = 100)]
+    width: u32,
+
+    #[arg(short = 'y', long, default_value_t = 100)]
+    height: u32,
 }
 
 // From darkest to lightest
@@ -14,8 +19,8 @@ fn main() {
     let args = Cli::parse();
     let img = image::open(&args.path).expect(&format!("Failed to open image {:?}", args.path));
 
-    let width = 100;
-    let height = 100;
+    let width = args.width;
+    let height = args.height;
 
     let img = img.resize(width, height, image::imageops::FilterType::Nearest);
 
