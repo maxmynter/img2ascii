@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use image::GenericImageView;
 
 #[derive(Parser)]
@@ -10,6 +10,24 @@ struct Cli {
 
     #[arg(short = 'y', long, default_value_t = 100)]
     height: u32,
+
+    #[arg(short = 'c', long, default_value_t = ColorScheme::Original)]
+    color_scheme: ColorScheme,
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+enum ColorScheme {
+    Original,
+    BlackAndWhite,
+}
+
+impl std::fmt::Display for ColorScheme {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.to_possible_value()
+            .expect("no values skipped")
+            .get_name()
+            .fmt(f)
+    }
 }
 
 // From darkest to lightest
