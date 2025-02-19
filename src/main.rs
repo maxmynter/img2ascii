@@ -1,7 +1,8 @@
 use clap::{Parser, ValueEnum};
 use colored::Colorize;
 use image::{GenericImageView, Rgb, Rgba};
-use std::error::Error;
+use std::path::Path;
+use std::{error::Error, path::PathBuf};
 
 const DEFAULT_DIMENSION: u32 = 100;
 const PASTEL_FACTOR: f32 = 0.7;
@@ -21,6 +22,11 @@ struct Cli {
 
     #[arg(short= 'g', long, default_value_t = 1.0,value_parser=validate_granularity )]
     granularity: f32,
+}
+
+enum MediaInput {
+    Image(PathBuf),
+    Video(PathBuf),
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
@@ -105,6 +111,14 @@ fn colorize_ascii(c: char, color: Rgb<u8>) -> String {
         .to_string()
 }
 
+fn detect_input_media_type(path: &Path) -> Result<MediaInput, Box<dyn Error>> {
+    match path.extension().and_then(|ext| ext.to_str()) {
+        Some("mp4" | "avi" | "mov" | "mkv") => Ok(MediaInput::Video(path.to_path_buf())),
+        Some("jpg" | "jpeg" | "png" | "gif") => Ok(MediaInput::Image(path.to_path_buf())),
+        _ => Err("Unsupported Media type".into()),
+    }
+}
+
 fn generate_ascii_image(args: Cli) -> Result<String, Box<dyn Error>> {
     let img = image::open(&args.path)
         .map_err(|err| format!("Failed to open image {:?}, {}", args.path, err))?;
@@ -133,10 +147,18 @@ fn generate_ascii_image(args: Cli) -> Result<String, Box<dyn Error>> {
     }
     Ok(output)
 }
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();
-    let ascii_art = generate_ascii_image(args);
-    print!("{}", ascii_art.unwrap());
+    match detect_input_media_type(&args.path)? {
+        MediaInput::Image(_path) => {
+            let ascii_art = generate_ascii_image(args)?;
+            print!("{}", ascii_art);
+        }
+        MediaInput::Video(_path) => {
+            todo!("Video Processing")
+        }
+    }
 
     Ok(())
 }
