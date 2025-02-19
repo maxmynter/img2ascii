@@ -171,7 +171,19 @@ fn frame_to_dynamic_image(
 fn init_video(
     path: &std::path::Path,
 ) -> Result<(ffmpeg::format::context::Input, ffmpeg::decoder::Video), Box<dyn Error>> {
-    todo!("Not yet implemented")
+    ffmpeg::init()?;
+    let input = ffmpeg::format::input(&path)?;
+    let stream = input
+        .streams()
+        .best(ffmpeg::media::Type::Video)
+        .ok_or("No video stream found")?;
+
+    let context = stream.parameters();
+    let decoder = ffmpeg::codec::Context::from_parameters(context)?
+        .decoder()
+        .video()?;
+
+    Ok((input, decoder))
 }
 
 fn process_video(args: Cli) -> Result<(), Box<dyn Error>> {
