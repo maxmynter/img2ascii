@@ -187,7 +187,34 @@ fn init_video(
 }
 
 fn process_video(args: Cli) -> Result<(), Box<dyn Error>> {
-    todo!("Not yet implemented")
+    let (mut input, mut decoder) = init_video(&args.path)?;
+
+    let mut frame = ffmpeg::frame::Video::empty();
+
+    let video_stream_index = input
+        .streams()
+        .best(ffmpeg::media::Type::Video)
+        .ok_or("No video stream found")?
+        .index();
+
+    for (stream, packet) in input.packets() {
+        if stream.index() == video_stream_index {
+            decoder.send_packet(&packet)?;
+            while decoder.receive_frame(&mut frame).is_ok() {
+                let image = frame_to_dynamic_image(&frame)?;
+                let ascii = generate_ascii_art(
+                    &image,
+                    args.width,
+                    args.height,
+                    &args.color_scheme,
+                    args.granularity,
+                )?;
+                print!("\x1B[2J\x1B[1;1H");
+                print!("{}", ascii);
+            }
+        }
+    }
+    Ok(())
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
