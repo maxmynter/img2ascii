@@ -1,6 +1,7 @@
 use clap::{Parser, ValueEnum};
 use colored::Colorize;
 use ffmpeg_next as ffmpeg;
+use ffmpeg_next::software::scaling::{self, Context};
 use image::{GenericImageView, Rgb, Rgba};
 use std::path::Path;
 use std::{error::Error, path::PathBuf};
@@ -61,6 +62,7 @@ fn get_ascii_set(granularity: f32) -> String {
     // From darkest to lightest
     const FULL_ASCII: &str =
         "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. ";
+    // Edge detection with curves ?
 
     let num_chars = (1.0 + (FULL_ASCII.len() - 1) as f32 * granularity).round() as usize;
 
@@ -164,8 +166,29 @@ fn generate_ascii_image(args: Cli) -> Result<String, Box<dyn Error>> {
 
 fn frame_to_dynamic_image(
     frame: &ffmpeg::frame::Video,
+    target_width: u32,
+    target_height: u32,
 ) -> Result<image::DynamicImage, Box<dyn Error>> {
-    todo!("Not yet implemented")
+    let mut rgb_frame =
+        ffmpeg::frame::Video::new(ffmpeg::format::Pixel::RGB24, target_width, target_height);
+
+    let sws_context = Context::get(
+        frame.format(),
+        frame.width(),
+        frame.height(),
+        ffmpeg::format::Pixel::RGB24,
+        target_width,
+        target_height,
+        scaling::Flags::BILINEAR,
+    );
+
+    sws_context?.run(frame, &mut rgb_frame)?;
+
+    let buffer =
+        image::ImageBuffer::from_raw(target_width, target_height, rgb_frame.data(0).to_vec())
+            .ok_or("Failed to create image buffer")?;
+
+    Ok(image::DynamicImage::ImageRgb8(buffer))
 }
 
 fn init_video(
@@ -201,7 +224,7 @@ fn process_video(args: Cli) -> Result<(), Box<dyn Error>> {
         if stream.index() == video_stream_index {
             decoder.send_packet(&packet)?;
             while decoder.receive_frame(&mut frame).is_ok() {
-                let image = frame_to_dynamic_image(&frame)?;
+                let image = frame_to_dynamic_image(&frame, args.width, args.height)?;
                 let ascii = generate_ascii_art(
                     &image,
                     args.width,
@@ -225,7 +248,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             print!("{}", ascii_art);
         }
         MediaInput::Video(_path) => {
-            todo!("Video Processing")
+            process_video(args)?;
         }
     }
 
