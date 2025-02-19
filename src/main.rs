@@ -23,6 +23,7 @@ struct Cli {
 enum ColorScheme {
     Original,
     BlackAndWhite,
+    Pastel,
 }
 
 impl std::fmt::Display for ColorScheme {
@@ -63,6 +64,16 @@ fn get_ascii_set(granularity: f32) -> String {
     }
 }
 
+fn pastellize_pixel(pixel: Rgba<u8>) -> Rgb<u8> {
+    // Mix with white to create pastel version
+    // Formula: new_color = original_color * 0.7 + 255 * 0.3
+    Rgb([
+        ((pixel[0] as f32 * 0.7) + (255.0 * 0.3)) as u8,
+        ((pixel[1] as f32 * 0.7) + (255.0 * 0.3)) as u8,
+        ((pixel[2] as f32 * 0.7) + (255.0 * 0.3)) as u8,
+    ])
+}
+
 fn pixel_to_brightness(pixel: Rgba<u8>) -> u8 {
     // Rec standard for luma grayscale conversion
     (pixel[0] as f32 * 0.3 + pixel[1] as f32 * 0.59 + pixel[2] as f32 * 0.11) as u8
@@ -80,6 +91,7 @@ fn pixel_to_color(pixel: Rgba<u8>, scheme: &ColorScheme) -> Rgb<u8> {
     match scheme {
         ColorScheme::Original => Rgb([pixel[0], pixel[1], pixel[2]]),
         ColorScheme::BlackAndWhite => Rgb([0, 0, 0]),
+        ColorScheme::Pastel => pastellize_pixel(pixel),
     }
 }
 
@@ -106,7 +118,6 @@ fn main() {
             let ascii_char = pixel_to_ascii(pixel, &ascii_set);
 
             let color = pixel_to_color(pixel, &args.color_scheme);
-
             let color_ascii = colorize_ascii(ascii_char, color);
 
             print!("{}", color_ascii);
