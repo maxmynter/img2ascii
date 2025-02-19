@@ -3,6 +3,7 @@ use colored::Colorize;
 use ffmpeg_next as ffmpeg;
 use ffmpeg_next::software::scaling::{self, Context};
 use image::{GenericImageView, Rgb, Rgba};
+use std::io::{self, Write};
 use std::path::Path;
 use std::{error::Error, path::PathBuf};
 
@@ -220,6 +221,8 @@ fn process_video(args: Cli) -> Result<(), Box<dyn Error>> {
         .ok_or("No video stream found")?
         .index();
 
+    let mut stdout = io::stdout().lock();
+
     for (stream, packet) in input.packets() {
         if stream.index() == video_stream_index {
             decoder.send_packet(&packet)?;
@@ -232,8 +235,9 @@ fn process_video(args: Cli) -> Result<(), Box<dyn Error>> {
                     &args.color_scheme,
                     args.granularity,
                 )?;
-                print!("\x1B[2J\x1B[1;1H");
-                print!("{}", ascii);
+                write!(stdout, "\x1B[2J\x1B[1;1H")?;
+                write!(stdout, "{}", ascii)?;
+                stdout.flush()?;
             }
         }
     }
