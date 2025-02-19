@@ -1,5 +1,6 @@
 use clap::{Parser, ValueEnum};
 use colored::Colorize;
+use ffmpeg_next as ffmpeg;
 use image::{GenericImageView, Rgb, Rgba};
 use std::path::Path;
 use std::{error::Error, path::PathBuf};
@@ -119,16 +120,16 @@ fn detect_input_media_type(path: &Path) -> Result<MediaInput, Box<dyn Error>> {
     }
 }
 
-fn generate_ascii_image(args: Cli) -> Result<String, Box<dyn Error>> {
-    let img = image::open(&args.path)
-        .map_err(|err| format!("Failed to open image {:?}, {}", args.path, err))?;
-
-    let width = args.width;
-    let height = args.height;
-
+fn generate_ascii_art(
+    img: &image::DynamicImage,
+    width: u32,
+    height: u32,
+    scheme: &ColorScheme,
+    granularity: f32,
+) -> Result<String, Box<dyn Error>> {
     let img = img.resize(width, height, image::imageops::FilterType::Nearest);
 
-    let ascii_set = get_ascii_set(args.granularity);
+    let ascii_set = get_ascii_set(granularity);
 
     let mut output = String::with_capacity((width * height) as usize);
 
@@ -138,7 +139,7 @@ fn generate_ascii_image(args: Cli) -> Result<String, Box<dyn Error>> {
 
             let ascii_char = pixel_to_ascii(pixel, &ascii_set);
 
-            let color = pixel_to_color(pixel, &args.color_scheme);
+            let color = pixel_to_color(pixel, &scheme);
             let color_ascii = colorize_ascii(ascii_char, color);
 
             output.push_str(&color_ascii);
@@ -146,6 +147,35 @@ fn generate_ascii_image(args: Cli) -> Result<String, Box<dyn Error>> {
         output.push('\n')
     }
     Ok(output)
+}
+
+fn generate_ascii_image(args: Cli) -> Result<String, Box<dyn Error>> {
+    let img = image::open(&args.path)
+        .map_err(|err| format!("Failed to open image {:?}, {}", args.path, err))?;
+
+    generate_ascii_art(
+        &img,
+        args.width,
+        args.height,
+        &args.color_scheme,
+        args.granularity,
+    )
+}
+
+fn frame_to_dynamic_image(
+    frame: &ffmpeg::frame::Video,
+) -> Result<image::DynamicImage, Box<dyn Error>> {
+    todo!("Not yet implemented")
+}
+
+fn init_video(
+    path: &std::path::Path,
+) -> Result<(ffmpeg::format::context::Input, ffmpeg::decoder::Video), Box<dyn Error>> {
+    todo!("Not yet implemented")
+}
+
+fn process_video(args: Cli) -> Result<(), Box<dyn Error>> {
+    todo!("Not yet implemented")
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
