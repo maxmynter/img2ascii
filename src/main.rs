@@ -1,15 +1,19 @@
 use clap::{Parser, ValueEnum};
 use colored::Colorize;
 use image::{GenericImageView, Rgb, Rgba};
+use std::error::Error;
+
+const DEFAULT_DIMENSION: u32 = 100;
+const PASTEL_FACTOR: f32 = 0.7;
 
 #[derive(Parser)]
 struct Cli {
     path: std::path::PathBuf,
 
-    #[arg(short = 'x', long, default_value_t = 100)]
+    #[arg(short = 'x', long, default_value_t = DEFAULT_DIMENSION)]
     width: u32,
 
-    #[arg(short = 'y', long, default_value_t = 100)]
+    #[arg(short = 'y', long, default_value_t = DEFAULT_DIMENSION)]
     height: u32,
 
     #[arg(short = 'c', long, default_value_t = ColorScheme::Original)]
@@ -68,9 +72,9 @@ fn pastellize_pixel(pixel: Rgba<u8>) -> Rgb<u8> {
     // Mix with white to create pastel version
     // Formula: new_color = original_color * 0.7 + 255 * 0.3
     Rgb([
-        ((pixel[0] as f32 * 0.7) + (255.0 * 0.3)) as u8,
-        ((pixel[1] as f32 * 0.7) + (255.0 * 0.3)) as u8,
-        ((pixel[2] as f32 * 0.7) + (255.0 * 0.3)) as u8,
+        ((pixel[0] as f32 * PASTEL_FACTOR) + (255.0 * (1.0 - PASTEL_FACTOR))) as u8,
+        ((pixel[1] as f32 * PASTEL_FACTOR) + (255.0 * (1.0 - PASTEL_FACTOR))) as u8,
+        ((pixel[2] as f32 * PASTEL_FACTOR) + (255.0 * (1.0 - PASTEL_FACTOR))) as u8,
     ])
 }
 
@@ -101,27 +105,38 @@ fn colorize_ascii(c: char, color: Rgb<u8>) -> String {
         .to_string()
 }
 
-fn main() {
-    let args = Cli::parse();
-    let img = image::open(&args.path).expect(&format!("Failed to open image {:?}", args.path));
+fn generate_ascii_image(args: Cli) -> Result<String, Box<dyn Error>> {
+    let img = image::open(&args.path)
+        .map_err(|err| format!("Failed to open image {:?}, {}", args.path, err))?;
 
     let width = args.width;
     let height = args.height;
 
     let img = img.resize(width, height, image::imageops::FilterType::Nearest);
 
+    let ascii_set = get_ascii_set(args.granularity);
+
+    let mut output = String::with_capacity((width * height) as usize);
+
     for y in 0..height {
         for x in 0..width {
             let pixel = img.get_pixel(x, y);
 
-            let ascii_set = get_ascii_set(args.granularity);
             let ascii_char = pixel_to_ascii(pixel, &ascii_set);
 
             let color = pixel_to_color(pixel, &args.color_scheme);
             let color_ascii = colorize_ascii(ascii_char, color);
 
-            print!("{}", color_ascii);
+            output.push_str(&color_ascii);
         }
-        println!();
+        output.push('\n')
     }
+    Ok(output)
+}
+fn main() -> Result<(), Box<dyn Error>> {
+    let args = Cli::parse();
+    let ascii_art = generate_ascii_image(args);
+    print!("{}", ascii_art.unwrap());
+
+    Ok(())
 }
