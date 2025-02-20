@@ -5,6 +5,7 @@ use ffmpeg_next::software::scaling::{self, Context};
 use image::{GenericImageView, Rgb, Rgba};
 use std::io::{self, Write};
 use std::path::Path;
+use std::time::{Duration, Instant};
 use std::{error::Error, path::PathBuf};
 
 const DEFAULT_DIMENSION: u32 = 100;
@@ -25,6 +26,12 @@ struct Cli {
 
     #[arg(short= 'g', long, default_value_t = 1.0,value_parser=validate_granularity )]
     granularity: f32,
+}
+
+struct VideoContext {
+    input: ffmpeg::format::context::Input,
+    decoder: ffmpeg::decoder::Video,
+    frame_duration: Duration,
 }
 
 enum MediaInput {
@@ -192,36 +199,47 @@ fn frame_to_dynamic_image(
     Ok(image::DynamicImage::ImageRgb8(buffer))
 }
 
-fn init_video(
-    path: &std::path::Path,
-) -> Result<(ffmpeg::format::context::Input, ffmpeg::decoder::Video), Box<dyn Error>> {
+fn init_video(path: &std::path::Path) -> Result<VideoContext, Box<dyn Error>> {
     ffmpeg::init()?;
+
     let input = ffmpeg::format::input(&path)?;
     let stream = input
         .streams()
         .best(ffmpeg::media::Type::Video)
         .ok_or("No video stream found")?;
 
+    let frame_rate = stream.rate();
+    let frame_duration =
+        Duration::from_secs_f64(frame_rate.denominator() as f64 / frame_rate.numerator() as f64);
+
     let context = stream.parameters();
     let decoder = ffmpeg::codec::Context::from_parameters(context)?
         .decoder()
         .video()?;
 
-    Ok((input, decoder))
+    Ok(VideoContext {
+        input,
+        decoder,
+        frame_duration,
+    })
 }
 
 fn process_video(args: Cli) -> Result<(), Box<dyn Error>> {
-    let (mut input, mut decoder) = init_video(&args.path)?;
+    let VideoContext {
+        mut input,
+        mut decoder,
+        frame_duration,
+    } = init_video(&args.path)?;
 
     let mut frame = ffmpeg::frame::Video::empty();
+    let mut stdout = io::stdout().lock();
+    let mut frame_timer = Instant::now();
 
     let video_stream_index = input
         .streams()
         .best(ffmpeg::media::Type::Video)
         .ok_or("No video stream found")?
         .index();
-
-    let mut stdout = io::stdout().lock();
 
     for (stream, packet) in input.packets() {
         if stream.index() == video_stream_index {
@@ -238,6 +256,11 @@ fn process_video(args: Cli) -> Result<(), Box<dyn Error>> {
                 write!(stdout, "\x1B[2J\x1B[1;1H")?;
                 write!(stdout, "{}", ascii)?;
                 stdout.flush()?;
+                let elapsed = frame_timer.elapsed();
+                if elapsed < frame_duration {
+                    std::thread::sleep(frame_duration - elapsed);
+                }
+                frame_timer = Instant::now();
             }
         }
     }
