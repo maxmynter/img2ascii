@@ -192,11 +192,18 @@ fn frame_to_dynamic_image(
 
     sws_context?.run(frame, &mut rgb_frame)?;
 
-    let buffer =
-        image::ImageBuffer::from_raw(target_width, target_height, rgb_frame.data(0).to_vec())
-            .ok_or("Failed to create image buffer")?;
+    let mut buffer = Vec::new();
+    let linesize = rgb_frame.stride(0);
+    for y in 0..target_height {
+        let start = y as usize * linesize;
+        let end = start + (target_width as usize * 3);
+        buffer.extend_from_slice(&rgb_frame.data(0)[start..end]);
+    }
 
-    Ok(image::DynamicImage::ImageRgb8(buffer))
+    Ok(image::DynamicImage::ImageRgb8(
+        image::ImageBuffer::from_raw(target_width, target_height, buffer)
+            .ok_or("failed to create image buffer")?,
+    ))
 }
 
 fn init_video(path: &std::path::Path) -> Result<VideoContext, Box<dyn Error>> {
