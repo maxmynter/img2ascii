@@ -136,7 +136,7 @@ fn generate_ascii_art(
     scheme: &ColorScheme,
     granularity: f32,
 ) -> Result<String, Box<dyn Error>> {
-    let resized = img.resize(width, height, image::imageops::FilterType::Lanczos3);
+    let resized = img.resize_exact(width, height, image::imageops::FilterType::Lanczos3);
 
     let ascii_set = get_ascii_set(granularity);
 
