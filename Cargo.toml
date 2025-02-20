@@ -9,3 +9,7 @@ clap = {version="4.0", features=["derive"]}
 image = {version="0.25"}
 colored = {version="3.0.0"}
 ffmpeg-next= {version="7.1.0"}
+
+[[bin]]
+name="asciify"
+path="src/main.rs"
