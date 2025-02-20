@@ -69,8 +69,7 @@ fn validate_granularity(s: &str) -> Result<f32, String> {
 fn get_ascii_set(granularity: f32) -> String {
     // From darkest to lightest
     const FULL_ASCII: &str =
-        "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. ";
-    // Edge detection with curves ?
+    "@&%QWNM0gB$#DR8mHXKAUbGOpV4d9h6PkqwSE2]ayjxY5Zoenult13If}C{iF|()7Jv)TLs?z*/cr!+<>;=^,_:'.-` ";
 
     let num_chars = (1.0 + (FULL_ASCII.len() - 1) as f32 * granularity).round() as usize;
 
