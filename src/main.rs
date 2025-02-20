@@ -137,15 +137,15 @@ fn generate_ascii_art(
     scheme: &ColorScheme,
     granularity: f32,
 ) -> Result<String, Box<dyn Error>> {
-    let img = img.resize(width, height, image::imageops::FilterType::Nearest);
+    let resized = img.resize(width, height, image::imageops::FilterType::Lanczos3);
 
     let ascii_set = get_ascii_set(granularity);
 
     let mut output = String::with_capacity((width * height) as usize);
 
-    for y in 0..height {
-        for x in 0..width {
-            let pixel = img.get_pixel(x, y);
+    for y in 0..resized.height() {
+        for x in 0..resized.width() {
+            let pixel = resized.get_pixel(x, y);
 
             let ascii_char = pixel_to_ascii(pixel, &ascii_set);
 
