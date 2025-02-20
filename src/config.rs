@@ -39,7 +39,7 @@ pub struct Cli {
     #[arg(short = 'd', long, default_value_t = 0)]
     pub device: u32,
 
-    #[arg(short = 'f', long)]
+    #[arg(short = 'f', long, default_value = "")]
     pub file: std::path::PathBuf,
 
     #[arg(short = 'x', long, default_value_t = DEFAULT_DIMENSION)]
