@@ -71,7 +71,7 @@ pub fn process_video(args: Cli) -> Result<(), Box<dyn Error>> {
         mut input,
         mut decoder,
         frame_duration,
-    } = init_video(&args.path)?;
+    } = init_video(&args.file)?;
 
     let mut frame = ffmpeg::frame::Video::empty();
     let mut stdout = io::stdout().lock();
